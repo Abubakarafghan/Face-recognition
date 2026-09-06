@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automated Face Recognition Attendance System</title>
+  
+  <!-- Bootstrap Icons CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="bi bi-person-bounding-box"></i>
+      </div>
+      <div class="brand-text">
+        <h2>VisionAttend AI</h2>
+        <span>Attendance System</span>
+      </div>
+    </div>
+
+    <nav class="nav-menu">
+      <a class="nav-item active" data-tab="scanner">
+        <i class="bi bi-camera-video-fill"></i>
+        <span>Live Scanner</span>
+      </a>
+      <a class="nav-item" data-tab="logs">
+        <i class="bi bi-journal-check"></i>
+        <span>Attendance Logs</span>
+      </a>
+      <a class="nav-item" data-tab="students">
+        <i class="bi bi-people-fill"></i>
+        <span>Student Roster</span>
+      </a>
+      <a class="nav-item" data-tab="analytics">
+        <i class="bi bi-bar-chart-line-fill"></i>
+        <span>Analytics</span>
+      </a>
+    </nav>
+
+    <div class="system-status">
+      <div class="status-indicator">
+        <span class="dot"></span>
+        <div>
+          <strong style="color:var(--text-main); display:block; font-size:12px;">System Active</strong>
+          <span>AI Engine Ready</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main class="main-wrapper">
+    
+    <!-- Top Bar Header -->
+    <header class="top-header">
+      <div class="header-title">
+        <h1 id="pageTitle">Live Attendance Scanner</h1>
+        <p id="pageSubtitle">Automated real-time facial recognition attendance kiosk</p>
+      </div>
+      <div class="header-meta">
+        <div class="time-card">
+          <i class="bi bi-clock-fill"></i>
+          <span id="liveClock">00:00:00 AM</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Tab 1: Live Scanner -->
+    <section id="tab-scanner" class="tab-content active">
+      
+      <!-- Stats Cards Header -->
+      <div class="grid-4">
+        <div class="card stat-card">
+          <div class="stat-icon primary">
+            <i class="bi bi-person-badge-fill"></i>
+          </div>
+          <div class="stat-details">
+            <h4>Total Enrolled</h4>
+            <h2 id="totalStudentsCount">0</h2>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon success">
+            <i class="bi bi-check-circle-fill"></i>
+          </div>
+          <div class="stat-details">
+            <h4>Present Today</h4>
+            <h2 id="presentTodayCount">0</h2>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon warning">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+          </div>
+          <div class="stat-details">
+            <h4>Absent Today</h4>
+            <h2 id="absentTodayCount">0</h2>
+          </div>
+        </div>
+
+        <div class="card stat-card">
+          <div class="stat-icon accent">
+            <i class="bi bi-lightning-charge-fill"></i>
+          </div>
+          <div class="stat-details">
+            <h4>Accuracy Rate</h4>
+            <h2>99.2%</h2>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Camera & Scanner Grid -->
+      <div class="grid-2">
+        <!-- Live Camera Stream Box -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-webcam-fill"></i> Real-Time AI Camera Feed</h3>
+            <span class="status-badge idle" id="scanStatusBadge">IDLE</span>
+          </div>
+
+          <div class="webcam-container">
+            <video id="webcamFeed" autoplay playsinline muted></video>
+            
+            <!-- Real-time AI Face Bounding Box Canvas Overlay -->
+            <canvas id="boundingBoxCanvas" style="position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; transform:scaleX(-1);"></canvas>
+
+            <!-- Scanner Overlay Graphic -->
+            <div class="scanner-overlay" id="scannerOverlay">
+              <div class="corner-box corner-tl"></div>
+              <div class="corner-box corner-tr"></div>
+              <div class="corner-box corner-bl"></div>
+              <div class="corner-box corner-br"></div>
+            </div>
+
+            <!-- Fallback Placeholder -->
+            <div class="camera-placeholder" id="cameraPlaceholder" style="display:none;">
+              <i class="bi bi-camera-video-off"></i>
+              <p>Camera feed disabled</p>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="scanner-controls">
+            <button class="btn btn-primary" id="btnToggleScan">
+              <i class="bi bi-play-fill"></i> Start Auto Recognition
+            </button>
+            <button class="btn btn-secondary" id="btnToggleCam">
+              <i class="bi bi-camera-video-off-fill"></i> Stop Camera
+            </button>
+          </div>
+        </div>
+
+        <!-- Recognition Status & Recent Log Stream -->
+        <div style="display:flex; flex-direction:column; gap:20px;">
+          
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="bi bi-person-check-fill"></i> Live Detection Status</h3>
+            </div>
+            
+            <!-- Live Scan Result Pop-up Alert Banner -->
+            <div id="scanAlertBanner" class="scan-alert-banner idle">
+              <div class="alert-icon-box" id="alertIconBox">
+                <i class="bi bi-person-bounding-box"></i>
+              </div>
+              <div class="alert-details">
+                <h4 id="alertTitle">Scanner Ready</h4>
+                <p id="alertSubtext">Click 'Start Auto Recognition' to scan live faces.</p>
+                <div id="alertConfidence" class="alert-confidence">Confidence: --</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity List -->
+          <div class="card" style="flex:1;">
+            <div class="card-header">
+              <h3><i class="bi bi-clock-history"></i> Recent Scans</h3>
+            </div>
+            
+            <div id="recentActivityList" style="display:flex; flex-direction:column; gap:8px;">
+              <!-- Dynamic activity items rendered here -->
+              <p style="font-size:13px; color:var(--text-muted);">No scans recorded in this session yet.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Tab 2: Attendance Logs -->
+    <section id="tab-logs" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="bi bi-table"></i> Daily Attendance Records</h3>
+          <button class="btn btn-success" id="btnExportCSV">
+            <i class="bi bi-file-earmark-excel-fill"></i> Export CSV Report
+          </button>
+        </div>
+
+        <div class="filter-bar">
+          <input type="text" id="searchAttendanceInput" class="form-control" placeholder="Search by name, roll no...">
+          <input type="date" class="form-control" value="2026-09-03">
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Department</th>
+                <th>Date</th>
+                <th>Time In</th>
+                <th>Status</th>
+                <th>Match Score</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 3: Student Roster -->
+    <section id="tab-students" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="bi bi-people-fill"></i> Enrolled Students Directory</h3>
+          <button class="btn btn-primary" id="btnOpenEnrollModal">
+            <i class="bi bi-person-plus-fill"></i> Enroll New Student
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Roll Number</th>
+                <th>Department</th>
+                <th>Registered Date</th>
+                <th>Profile Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 4: Analytics -->
+    <section id="tab-analytics" class="tab-content">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-pie-chart-fill"></i> Attendance Rate Overview</h3>
+          </div>
+          <div style="padding: 20px 0; text-align:center;">
+            <div style="font-size:48px; font-weight:700; color:var(--success);">94.8%</div>
+            <p style="color:var(--text-muted); font-size:14px; margin-top:6px;">Average Attendance Rate this Month</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3><i class="bi bi-diagram-3-fill"></i> Department Wise Participation</h3>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:16px; margin-top:10px;">
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span>Computer Science</span>
+                <span>98%</span>
+              </div>
+              <div style="width:100%; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;">
+                <div style="width:98%; height:100%; background:var(--primary);"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span>Artificial Intelligence</span>
+                <span>92%</span>
+              </div>
+              <div style="width:100%; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;">
+                <div style="width:92%; height:100%; background:var(--accent);"></div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+                <span>Software Engineering</span>
+                <span>88%</span>
+              </div>
+              <div style="width:100%; height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden;">
+                <div style="width:88%; height:100%; background:var(--warning);"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Enroll Student Modal -->
+  <div class="modal-backdrop" id="enrollModal">
+    <div class="modal-content">
+      <div class="card-header" style="margin-bottom:14px;">
+        <h3><i class="bi bi-person-badge-fill"></i> Student Enrolment</h3>
+        <button id="btnCloseModal" style="background:none; border:none; color:var(--text-muted); font-size:20px; cursor:pointer;">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+
+      <form id="enrollForm">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="studentName" class="form-control" placeholder="e.g. John Doe" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Roll Number / Student ID</label>
+          <input type="text" id="studentRoll" class="form-control" placeholder="e.g. 2024-CS-99" required>
+        </div>
+
+        <div class="form-group">
+          <label>Department</label>
+          <select id="studentDept" class="form-control" required>
+            <option value="Computer Science">Computer Science</option>
+            <option value="Artificial Intelligence">Artificial Intelligence</option>
+            <option value="Software Engineering">Software Engineering</option>
+          </select>
+        </div>
+
+        <!-- Camera Sample Capture -->
+        <div class="form-group">
+          <label>Facial Profile Sample</label>
+          <div style="width:100%; height:180px; background:#000; border-radius: var(--radius-md); overflow:hidden; position:relative; margin-bottom:10px;">
+            <video id="regWebcamFeed" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; transform:scaleX(-1);"></video>
+          </div>
+          <button type="button" class="btn btn-secondary" id="btnCapturePhoto" style="width:100%; justify-content:center;">
+            <i class="bi bi-camera-fill"></i> Capture Photo Sample
+          </button>
+          <canvas id="snapshotCanvas" style="display:none;"></canvas>
+          <img id="snapshotPreview" style="display:none; width:100px; height:100px; border-radius:8px; margin-top:10px; border:2px solid var(--accent); object-fit:cover;" alt="Captured preview">
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:20px;">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle-fill"></i> Save Student Profile
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Main JavaScript App -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
