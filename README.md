@@ -22,7 +22,7 @@ An open-source face recognition attendance system with a browser-based kiosk int
 Clone the repository and open its directory:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Face-recognition.git
+git clone https://github.com/Abubakarafghan/Face-recognition.git
 cd Face-recognition
 ```
 
